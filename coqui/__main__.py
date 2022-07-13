@@ -156,6 +156,66 @@ async def download_file(url, f, chunk_size=5 * 2**20):
 
 
 @tts.command()
+@click.option("--audio_file", help="Path of reference audio file to clone voice from")
+@click.option("--name", help="Name of cloned voice")
+@coro
+async def clone_voice(audio_file, name):
+    async with get_session() as session:
+        mutation = gql(
+            """
+            mutation CreateVoice($name: String!, $voice: Upload!) {
+                createVoice(name: $name, voice: $voice) {
+                    errors {
+                        field
+                        errors
+                    }
+                    voice {
+                        id
+                        name
+                        created_at
+                    }
+                }
+            }
+        """
+        )
+        with open(audio_file, "rb") as fin:
+            result = await session.execute(
+                mutation,
+                variable_values={
+                    "voice": fin,
+                    "name": name,
+                },
+                upload_files=True,
+            )
+        click.echo(result)
+
+
+@tts.command()
+@click.option("--voice", help="ID of voice to list existing samples for")
+@coro
+async def list_samples(voice):
+    async with get_session() as session:
+        query = gql(
+            """
+            query Samples($voice_id: String!) {
+                samples(voice_id: $voice_id) {
+                    id
+                    name
+                    audio_url
+                }
+            }
+        """
+        )
+        result = await session.execute(
+            query,
+            variable_values={
+                "voice_id": voice,
+            },
+        )
+        click.echo(result)
+
+
+@tts.command()
 @click.option("--voice", help="ID of voice to synthesize", type=click.UUID)
 @click.option("--text", help="Text to synthesize")
 @click.option("--speed", help="Speed parameter for synthesis", default=1.0)
