@@ -3,7 +3,7 @@ requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name = "coqui_cli"
+name = "coqui"
 authors = [{name = "coqui.ai", email = "info@coqui.ai"}]
 license = {file = "LICENSE"}
 readme = "README.md"
@@ -21,9 +21,9 @@ dependencies = [
 ]
 
 [project.urls]
-Home = "https://github.com/coqui-ai/cli"
-Documentation = "https://coqui-cli.readthedocs.io"
-Source = "https://github.com/coqui-ai/cli"
+Home = "https://github.com/coqui-ai/coqui-py"
+Documentation = "https://coqui-py.readthedocs.io"
+Source = "https://github.com/coqui-ai/coqui-py"
 
 [project.scripts]
-coqui-cli = "coqui_cli.__main__:main"
+coqui = "coqui.__main__:main"

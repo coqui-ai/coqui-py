@@ -60,7 +60,7 @@ async def get_session(authed=True):
     if authed:
         if not is_signed_in():
             raise RuntimeError(
-                "Tried to create authenticated session without signing in."
+                "Tried to create authenticated session without logging in."
             )
 
         token = AuthInfo.get()["token"]
@@ -78,13 +78,13 @@ def main():
     pass
 
 
-# TODO: implement --password-stdin
+# TODO: remove, keep token only
 @main.command()
 @click.option("--username", help="Username to login as")
 @click.option("--password", help="Password", default=None)
 @click.option("--password-stdin", help="Read password from stdin", is_flag=True)
 @coro
-async def signin(username, password, password_stdin):
+async def login(username, password, password_stdin):
     if password_stdin:
         password = sys.stdin.read().strip()
 
@@ -111,6 +111,23 @@ async def signin(username, password, password_stdin):
             },
         )
         AuthInfo.set(result["tokenAuth"])
+        click.echo("Signed in!")
+
+
+@main.command()
+@click.option("--token", help="API token to sign in with")
+@coro
+async def token_login(token):
+    AuthInfo.set({"token": token})
+    async with get_session() as session:
+        query = gql(
+            """{
+            profile {
+                email
+            }
+        }"""
+        )
+        result = await session.execute(query)
         click.echo("Signed in!")
 
 
@@ -153,6 +170,66 @@ async def download_file(url, f, chunk_size=5 * 2**20):
                     red += len(chunk)
 
                 f.write(data)
+
+
+@tts.command()
+@click.option("--audio_file", help="Path of reference audio file to clone voice from")
+@click.option("--name", help="Name of cloned voice")
+@coro
+async def clone_voice(audio_file, name):
+    async with get_session() as session:
+        mutation = gql(
+            """
+            mutation CreateVoice($name: String!, $voice: Upload!) {
+                createVoice(name: $name, voice: $voice) {
+                    errors {
+                        field
+                        errors
+                    }
+                    voice {
+                        id
+                        name
+                        created_at
+                    }
+                }
+            }
+        """
+        )
+        with open(audio_file, "rb") as fin:
+            result = await session.execute(
+                mutation,
+                variable_values={
+                    "voice": fin,
+                    "name": name,
+                },
+                upload_files=True,
+            )
+        click.echo(result)
+
+
+@tts.command()
+@click.option("--voice", help="ID of voice to list existing samples for")
+@coro
+async def list_samples(voice):
+    async with get_session() as session:
+        query = gql(
+            """
+            query Samples($voice_id: String!) {
+                samples(voice_id: $voice_id) {
+                    id
+                    name
+                    audio_url
+                }
+            }
+        """
+        )
+        result = await session.execute(
+            query,
+            variable_values={
+                "voice_id": voice,
+            },
+        )
+        click.echo(result)
 
 
 @tts.command()
