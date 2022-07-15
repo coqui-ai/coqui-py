@@ -12,6 +12,7 @@ classifiers = [
   "Intended Audience :: Developers",
   "Topic :: Multimedia :: Sound/Audio :: Speech",
   "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: Apache Software License",
 ]
 requires-python = ">=3.7,<3.11"
 dynamic = ["version", "description"]
@@ -22,7 +23,6 @@ dependencies = [
 
 [project.urls]
 Home = "https://github.com/coqui-ai/coqui-py"
-Documentation = "https://coqui-py.readthedocs.io"
 Source = "https://github.com/coqui-ai/coqui-py"
 
 [project.scripts]
