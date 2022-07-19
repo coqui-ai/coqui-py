@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from getpass import getpass
 from functools import wraps
 
 import click
@@ -60,7 +61,10 @@ def main(base_url):
 @coroutine
 async def login(username, password, password_stdin):
     if password_stdin:
-        password = sys.stdin.read().strip()
+        if not sys.stdin.isatty():
+            password = sys.stdin.read().strip()
+        else:
+            password = getpass()
 
     if not password:
         raise RuntimeError("Sign in requires either --password or --password-stdin")
