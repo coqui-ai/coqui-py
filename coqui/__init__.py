@@ -1,5 +1,5 @@
 """ A Python API and CLI to use Coqui services programmatically """
-__version__ = "0.0.5"
+__version__ = "0.0.6"
 
 import asyncio
 from collections import namedtuple
@@ -338,6 +338,18 @@ class Coqui(metaclass=SyncReplacer):
                 }
             """
             )
+            query = gql(
+                """
+                    query Sample($id: String!) {
+                        sample(id: $id) {
+                            id
+                            name
+                            text
+                            created_at
+                            audio_url
+                        }
+                    }
+            """)
             try:
                 result = await session.execute(
                     mutation,
@@ -358,7 +370,12 @@ class Coqui(metaclass=SyncReplacer):
                     for err in result["errors"]
                 )
                 raise SynthesisError(all_errors)
-            return Sample(**result["sample"])
+
+            sample = Sample(**result["sample"])
+            while sample.audio_url is None:
+                result = await session.execute(query, variable_values={"id": sample.id})
+                sample = Sample(**result["sample"])
+            return sample
 
     @staticmethod
     async def download_file(url, f, chunk_size=5 * 2**20):
