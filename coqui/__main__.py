@@ -41,13 +41,15 @@ class PersistedConfig:
             return json.load(fin)
 
 
-BASE_URL = "http://localhost:8001"
+BASE_URL = None
 AuthInfo = PersistedConfig("~/.coqui/credentials")
 
 
 @click.group()
-def main():
-    pass
+@click.option("--base-url", default=None)
+def main(base_url):
+    global BASE_URL
+    BASE_URL = base_url
 
 
 # TODO: remove, keep token only

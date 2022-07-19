@@ -1,5 +1,5 @@
 """ A Python API and CLI to use Coqui services programmatically """
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 import asyncio
 from collections import namedtuple
@@ -47,17 +47,20 @@ class SyncReplacer(type):
 
 
 class AuthenticationError(Exception):
-    """ Raised when an authenticated operation is attempted without logging in first. """
+    """Raised when an authenticated operation is attempted without logging in first."""
+
     pass
 
 
 class SynthesisError(Exception):
-    """ Raised when synthesis fails due to invalid creation parameters. """
+    """Raised when synthesis fails due to invalid creation parameters."""
+
     pass
 
 
 class CloneVoiceError(Exception):
-    """ Raised when cloning a voice fails due to invalid cloning parameters. """
+    """Raised when cloning a voice fails due to invalid cloning parameters."""
+
     pass
 
 
@@ -146,7 +149,10 @@ class Sample(namedtuple("Sample", "id, name, text, created_at, audio_url")):
 
 
 class Coqui(metaclass=SyncReplacer):
-    def __init__(self, base_url="https://creator-app.prod-coqui.com"):
+    def __init__(self, base_url=None):
+        base_url = (
+            "https://creator-app.prod-coqui.com" if base_url is None else base_url
+        )
         self._base_url = base_url
         self._api_token = None
         self._logged_in = False
