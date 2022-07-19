@@ -1,5 +1,5 @@
 """ A Python API and CLI to use Coqui services programmatically """
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 import asyncio
 from collections import namedtuple

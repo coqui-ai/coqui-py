@@ -28,4 +28,4 @@ jobs:
           password=${{ secrets.PYPI_TOKEN }}
           EOF
       - run: |
-          python -n flit publish
+          python -m flit publish
