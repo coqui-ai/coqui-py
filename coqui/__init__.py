@@ -171,9 +171,9 @@ class Coqui(metaclass=SyncReplacer):
                     "Tried to create authenticated session without logging in."
                 )
 
-            headers = {"Authorization": f"JWT {self._api_token}"}
+            headers = {"X-Api-Key": f"{self._api_token}"}
 
-        transport = AIOHTTPTransport(url=f"{self._base_url}/graphql/", headers=headers)
+        transport = AIOHTTPTransport(url=f"{self._base_url}/api/", headers=headers)
         async with Client(
             transport=transport,
         ) as session:
@@ -182,30 +182,6 @@ class Coqui(metaclass=SyncReplacer):
     async def login(self, token) -> bool:
         self._api_token = token
         return await self.validate_login_async()  # type: ignore
-
-    # TODO: remove, keep token only
-    async def password_login(self, username, password) -> str:
-        async with self._get_session(authed=False) as session:
-            mutation = gql(
-                """
-                mutation Login($username: String!, $password: String!) {
-                    tokenAuth(username: $username, password: $password) {
-                        token
-                        refresh_token
-                        payload
-                    }
-                }
-            """
-            )
-            result = await session.execute(
-                mutation,
-                variable_values={
-                    "username": username,
-                    "password": password,
-                },
-            )
-            self._api_token = result["tokenAuth"]["token"]
-            return self._api_token
 
     async def validate_login(self) -> bool:
         if self._logged_in:

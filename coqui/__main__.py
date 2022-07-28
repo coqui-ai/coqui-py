@@ -53,35 +53,10 @@ def main(base_url):
     BASE_URL = base_url
 
 
-# TODO: remove, keep token only
-@main.command()
-@click.option("--username", help="Username to login as")
-@click.option("--password", help="Password", default=None)
-@click.option("--password-stdin", help="Read password from stdin", is_flag=True)
-@coroutine
-async def login(username, password, password_stdin):
-    if password_stdin:
-        if not sys.stdin.isatty():
-            password = sys.stdin.read().strip()
-        else:
-            password = getpass()
-
-    if not password:
-        raise RuntimeError("Sign in requires either --password or --password-stdin")
-
-    coqui = Coqui(base_url=BASE_URL)
-    try:
-        token = await coqui.password_login_async(username, password)
-        AuthInfo.set(token)
-        click.echo("Logged in!")
-    except:
-        click.echo("Error: Invalid credentials!")
-
-
 @main.command()
 @click.option("--token", help="API token to sign in with")
 @coroutine
-async def token_login(token):
+async def login(token):
     coqui = Coqui(base_url=BASE_URL)
     if await coqui.login_async(token):
         AuthInfo.set(token)

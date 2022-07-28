@@ -13,7 +13,7 @@ $ pip install coqui
 From CLI:
 
 ```
-$ coqui token-login --login YOUR_API_TOKEN_HERE
+$ coqui login --token YOUR_API_TOKEN_HERE
 Logged in!
 $ coqui tts get-voices
 [ClonedVoice(id='030527c9-1ae6-4e14-a4de-e063816d0fe4', name='once upon a time', samples_count=3, created_at=datetime.datetime(2022, 7, 13, 18, 38, 8, 725000)), ClonedVoice(id='04dd7d71-f474-45d1-8743-a7fcb4f8b3c4', name='once upon a time 2', samples_count=0, created_at=datetime.datetime(2022, 7, 15, 11, 55, 17, 155000))]
@@ -102,6 +102,6 @@ $ python -m pip install flit
 # test changes without having to reinstall the package.
 $ python -m flit install -s
 $ coqui --help
-$ coqui token-login --help
+$ coqui login --help
 $ # etc
 ```
