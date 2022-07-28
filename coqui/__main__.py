@@ -1,15 +1,17 @@
 import asyncio
+import csv
 import json
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+from datetime import datetime, date
 from getpass import getpass
 from functools import wraps
 
 import click
-from . import Coqui
+from . import Coqui, ClonedVoice, Sample
 
 
 def coroutine(f):
@@ -18,6 +20,14 @@ def coroutine(f):
         return asyncio.run(f(*args, **kwargs))
 
     return wrapper
+
+
+def json_serial(obj):
+    """JSON serializer for objects not serializable by default json code"""
+
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    raise TypeError ("Type %s not serializable" % type(obj))
 
 
 class PersistedConfig:
@@ -71,34 +81,56 @@ def tts():
 
 
 @tts.command()
+@click.option("--fields", help=f"CSV output, specify which attributes of the available cloned voices to print. Comma separated list, eg: -f id,name. Available fields: {', '.join(ClonedVoice._fields)}")
+@click.option("--json", "json_out", is_flag=True, help="Print output as JSON")
 @coroutine
-async def get_voices():
+async def list_voices(fields, json_out):
     coqui = Coqui(base_url=BASE_URL)
     await coqui.login_async(AuthInfo.get())
     voices = await coqui.cloned_voices_async()
-    click.echo(voices)
+    if json_out:
+        click.echo(json.dumps([v._asdict() for v in voices], default=json_serial))
+    elif not fields:
+        click.echo(voices)
+    else:
+        writer = csv.writer(sys.stdout, lineterminator=os.linesep)
+        for v in voices:
+            writer.writerow([getattr(v, f) for f in fields.split(',')])
 
 
 @tts.command()
 @click.option("--audio_file", help="Path of reference audio file to clone voice from")
 @click.option("--name", help="Name of cloned voice")
+@click.option("--json", "json_out", is_flag=True, help="Print output as JSON")
 @coroutine
-async def clone_voice(audio_file, name):
+async def clone_voice(audio_file, name, json_out):
     coqui = Coqui(base_url=BASE_URL)
     await coqui.login_async(AuthInfo.get())
     with open(audio_file, "rb") as fin:
-        result = await coqui.clone_voice_async(fin, name)
-    click.echo(result)
+        voice = await coqui.clone_voice_async(fin, name)
+    if json_out:
+        click.echo(json.dumps(voice._asdict(), default=json_serial))
+    else:
+        click.echo(voice)
 
 
 @tts.command()
 @click.option("--voice", help="ID of voice to list existing samples for")
+@click.option("--fields", "-f", help=f"CSV output, speicfy which attributes of the available samples to print out. Comma separated list, eg: -f id,name. Available fields: {', '.join(Sample._fields)}")
+@click.option("--json", "json_out", is_flag=True, help="Print output as JSON")
 @coroutine
-async def list_samples(voice):
+async def list_samples(voice, fields, json_out):
     coqui = Coqui(base_url=BASE_URL)
     await coqui.login_async(AuthInfo.get())
-    result = await coqui.list_samples_async(voice_id=voice)
-    click.echo(result)
+    samples = await coqui.list_samples_async(voice_id=voice)
+    if json_out:
+        click.echo(json.dumps([s._asdict() for s in samples], default=json_serial))
+    elif not fields:
+        click.echo(samples)
+    else:
+        writer = csv.writer(sys.stdout, lineterminator=os.linesep)
+        for s in samples:
+            writer.writerow([getattr(s, f) for f in fields.split(',')])
 
 
 @tts.command()
@@ -108,11 +140,17 @@ async def list_samples(voice):
 @click.option("--name", help="Name of sample", default=None)
 @click.option(
     "--save",
-    help="If specified, save the synthesized sample instead of playing it",
+    help="If specified, save the synthesized sample to this file name.",
     default=None,
 )
+@click.option(
+    "--play",
+    help="If specified, play the synthesized sample",
+    is_flag=True,
+)
+@click.option("--json", "json_out", is_flag=True, help="Print output as JSON")
 @coroutine
-async def synthesize(voice, text, speed, name, save):
+async def synthesize(voice, text, speed, name, save, play, json_out):
     coqui = Coqui(base_url=BASE_URL)
     await coqui.login_async(AuthInfo.get())
     sample = await coqui.synthesize_async(voice, text, speed, name or text[:30])
@@ -122,10 +160,14 @@ async def synthesize(voice, text, speed, name, save):
         if save:
             shutil.copy(fout.name, save)
             click.echo(f"Saved synthesized sample to {save}")
-        else:
+        elif play:
             subprocess.run(
                 ["play", fout.name],
                 check=True,
                 stdin=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
+        elif json_out:
+            click.echo(json.dumps(sample._asdict(), default=json_serial))
+        else:
+            click.echo(sample)
