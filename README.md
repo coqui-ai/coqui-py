@@ -13,12 +13,52 @@ $ pip install coqui
 From CLI:
 
 ```
+$ coqui --help
+Usage: coqui [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  --base-url TEXT
+  --help           Show this message and exit.
+
+Commands:
+  login
+  tts
 $ coqui login --token YOUR_API_TOKEN_HERE
 Logged in!
-$ coqui tts get-voices
+$ coqui tts list-voices --help
+coqui tts list-voices --help
+Usage: coqui tts list-voices [OPTIONS]
+
+Options:
+  --fields TEXT  CSV output, specify which attributes of the available cloned
+                 voices to print. Comma separated list, eg: -f id,name.
+                 Available fields: id, name, samples_count, created_at
+  --json         Print output as JSON
+  --help         Show this message and exit.
+$ coqui tts list-voices
 [ClonedVoice(id='030527c9-1ae6-4e14-a4de-e063816d0fe4', name='once upon a time', samples_count=3, created_at=datetime.datetime(2022, 7, 13, 18, 38, 8, 725000)), ClonedVoice(id='04dd7d71-f474-45d1-8743-a7fcb4f8b3c4', name='once upon a time 2', samples_count=0, created_at=datetime.datetime(2022, 7, 15, 11, 55, 17, 155000))]
+$ coqui tts clone-voice --help
+Usage: coqui tts clone-voice [OPTIONS]
+
+Options:
+  --audio_file TEXT  Path of reference audio file to clone voice from
+  --name TEXT        Name of cloned voice
+  --json             Print output as JSON
+  --help             Show this message and exit.
 $ coqui tts clone-voice --audio_file ~/Downloads/blob_PSxUPIV.wav --name "once upon a time 3"
 ClonedVoice(id='4b7a1b08-67f9-4bf2-8600-f97cd39bd39c', name='once upon a time 3', samples_count=0, created_at=datetime.datetime(2022, 7, 15, 12, 37, 3, 111000))
+$ coqui tts synthesize --help
+Usage: coqui tts synthesize [OPTIONS]
+
+Options:
+  --voice UUID   ID of voice to synthesize
+  --text TEXT    Text to synthesize
+  --speed FLOAT  Speed parameter for synthesis
+  --name TEXT    Name of sample
+  --save TEXT    If specified, save the synthesized sample to this file name.
+  --play         If specified, play the synthesized sample
+  --json         Print output as JSON
+  --help         Show this message and exit.
 $ coqui tts synthesize --voice 4b7a1b08-67f9-4bf2-8600-f97cd39bd39c --text "hello from the world of synthesis" --save foo.wav
 Saved synthesized sample to foo.wav
 $ play foo.wav
