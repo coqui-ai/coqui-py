@@ -8,6 +8,12 @@
 $ pip install coqui
 ```
 
+To update an existing installation to the latest version, use:
+
+```bash
+$ pip install -U coqui
+```
+
 ## Usage
 
 From CLI:
