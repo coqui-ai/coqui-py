@@ -1,5 +1,5 @@
 """ A Python API and CLI to use Coqui services programmatically """
-__version__ = "0.0.7"
+__version__ = "0.0.8"
 
 import asyncio
 from collections import namedtuple
@@ -151,7 +151,7 @@ class Sample(namedtuple("Sample", "id, name, text, created_at, audio_url")):
 class Coqui(metaclass=SyncReplacer):
     def __init__(self, base_url=None):
         base_url = (
-            "https://creator-app.prod-coqui.com" if base_url is None else base_url
+            "https://app.coqui.ai" if base_url is None else base_url
         )
         self._base_url = base_url
         self._api_token = None
@@ -173,7 +173,7 @@ class Coqui(metaclass=SyncReplacer):
 
             headers = {"X-Api-Key": f"{self._api_token}"}
 
-        transport = AIOHTTPTransport(url=f"{self._base_url}/api/", headers=headers)
+        transport = AIOHTTPTransport(url=f"{self._base_url}/api/v1", headers=headers)
         async with Client(
             transport=transport,
         ) as session:
