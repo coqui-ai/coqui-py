@@ -27,7 +27,7 @@ def json_serial(obj):
 
     if isinstance(obj, (datetime, date)):
         return obj.isoformat()
-    raise TypeError ("Type %s not serializable" % type(obj))
+    raise TypeError("Type %s not serializable" % type(obj))
 
 
 class PersistedConfig:
@@ -81,7 +81,10 @@ def tts():
 
 
 @tts.command()
-@click.option("--fields", help=f"CSV output, specify which attributes of the available cloned voices to print. Comma separated list, eg: -f id,name. Available fields: {', '.join(ClonedVoice._fields)}")
+@click.option(
+    "--fields",
+    help=f"CSV output, specify which attributes of the available cloned voices to print. Comma separated list, eg: -f id,name. Available fields: {', '.join(ClonedVoice._fields)}",
+)
 @click.option("--json", "json_out", is_flag=True, help="Print output as JSON")
 @coroutine
 async def list_voices(fields, json_out):
@@ -95,7 +98,7 @@ async def list_voices(fields, json_out):
     else:
         writer = csv.writer(sys.stdout, lineterminator=os.linesep)
         for v in voices:
-            writer.writerow([getattr(v, f) for f in fields.split(',')])
+            writer.writerow([getattr(v, f) for f in fields.split(",")])
 
 
 @tts.command()
@@ -115,8 +118,36 @@ async def clone_voice(audio_file, name, json_out):
 
 
 @tts.command()
+@click.option("--audio_file", help="Path of reference audio file to clone voice from")
+@click.option(
+    "--audio_url", help="URL of reference audio file to estimate quality from"
+)
+@click.option("--json", "json_out", is_flag=True, help="Print output as JSON")
+@coroutine
+async def estimate_quality(audio_file, audio_url, json_out):
+    coqui = Coqui(base_url=BASE_URL)
+    await coqui.login_async(AuthInfo.get())
+
+    if not audio_file and not audio_url:
+        raise click.UsageError("Must specify exactly one of: audio_file or audio_url")
+
+    quality, raw = await coqui.estimate_quality_async(
+        audio_url=audio_url, audio_path=audio_file
+    )
+
+    if json_out:
+        click.echo(json.dumps({"quality": quality, "raw": raw}, default=json_serial))
+    else:
+        click.echo(f"Quality: {quality}\nRaw: {raw}")
+
+
+@tts.command()
 @click.option("--voice", help="ID of voice to list existing samples for")
-@click.option("--fields", "-f", help=f"CSV output, speicfy which attributes of the available samples to print out. Comma separated list, eg: -f id,name. Available fields: {', '.join(Sample._fields)}")
+@click.option(
+    "--fields",
+    "-f",
+    help=f"CSV output, speicfy which attributes of the available samples to print out. Comma separated list, eg: -f id,name. Available fields: {', '.join(Sample._fields)}",
+)
 @click.option("--json", "json_out", is_flag=True, help="Print output as JSON")
 @coroutine
 async def list_samples(voice, fields, json_out):
@@ -130,7 +161,7 @@ async def list_samples(voice, fields, json_out):
     else:
         writer = csv.writer(sys.stdout, lineterminator=os.linesep)
         for s in samples:
-            writer.writerow([getattr(s, f) for f in fields.split(',')])
+            writer.writerow([getattr(s, f) for f in fields.split(",")])
 
 
 @tts.command()

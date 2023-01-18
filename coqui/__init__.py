@@ -6,6 +6,7 @@ from collections import namedtuple
 from datetime import datetime
 from contextlib import asynccontextmanager
 from functools import wraps
+from pathlib import Path
 from typing import BinaryIO, List, Optional
 
 import aiohttp
@@ -60,6 +61,12 @@ class SynthesisError(Exception):
 
 class CloneVoiceError(Exception):
     """Raised when cloning a voice fails due to invalid cloning parameters."""
+
+    pass
+
+
+class EstimateQualityError(Exception):
+    """Raised when estimating quality of a sample fails due to invalid parameters."""
 
     pass
 
@@ -150,9 +157,7 @@ class Sample(namedtuple("Sample", "id, name, text, created_at, audio_url")):
 
 class Coqui(metaclass=SyncReplacer):
     def __init__(self, base_url=None):
-        base_url = (
-            "https://app.coqui.ai" if base_url is None else base_url
-        )
+        base_url = "https://app.coqui.ai" if base_url is None else base_url
         self._base_url = base_url
         self._api_token = None
         self._logged_in = False
@@ -270,6 +275,73 @@ class Coqui(metaclass=SyncReplacer):
                 raise CloneVoiceError(all_errors)
             return ClonedVoice(**result["voice"])
 
+    async def estimate_quality(
+        self,
+        *,
+        audio_file: Optional[BinaryIO] = None,
+        audio_path: Optional[Path] = None,
+        audio_url: Optional[str] = None,
+    ):
+        if not audio_file and not audio_path and not audio_url:
+            raise TypeError(
+                "Must specify exactly one of: audio_file, audio_path, audio_url"
+            )
+
+        async with self._get_session() as session:
+            query = gql(
+                """
+                query EstimateQuality($sample: Upload, $url: String) {
+                    estimateQuality(sample: $sample, url: $url) {
+                        quality
+                        errors
+                    }
+                }
+            """
+            )
+            try:
+                if audio_url:
+                    result = await session.execute(
+                        query, variable_values={"url": audio_url}
+                    )
+                elif audio_path:
+                    with open(audio_path, "rb") as fin:
+                        result = await session.execute(
+                            query,
+                            variable_values={
+                                "sample": fin,
+                            },
+                            upload_files=True,
+                        )
+                elif audio_file:
+                    result = await session.execute(
+                        query,
+                        variable_values={
+                            "sample": audio_file,
+                        },
+                        upload_files=True,
+                    )
+                else:
+                    assert False, "unreachable!"
+
+            except gqlexceptions.TransportQueryError as e:
+                raise RateLimitExceededError(e)
+
+            result = result["estimateQuality"]
+            if result["errors"]:
+                all_errors = "\n".join(result["errors"])
+                raise EstimateQualityError(all_errors)
+
+            raw: float = result["quality"]
+
+            if raw >= 2.5:
+                quality = "high"
+            elif raw >= 1.5:
+                quality = "average"
+            else:
+                quality = "poor"
+
+            return quality, raw
+
     async def list_samples(self, voice_id) -> List[Sample]:
         async with self._get_session() as session:
             query = gql(
@@ -325,7 +397,8 @@ class Coqui(metaclass=SyncReplacer):
                             audio_url
                         }
                     }
-            """)
+            """
+            )
             try:
                 result = await session.execute(
                     mutation,
