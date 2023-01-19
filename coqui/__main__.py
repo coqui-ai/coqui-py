@@ -6,12 +6,12 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from datetime import datetime, date
-from getpass import getpass
+from datetime import date, datetime
 from functools import wraps
 
 import click
-from . import Coqui, ClonedVoice, Sample
+
+from . import ClonedVoice, Coqui, Sample
 
 
 def coroutine(f):
@@ -68,7 +68,7 @@ def main(base_url):
 @coroutine
 async def login(token):
     coqui = Coqui(base_url=BASE_URL)
-    if await coqui.login_async(token):
+    if await coqui.login(token):
         AuthInfo.set(token)
         click.echo("Logged in!")
     else:
@@ -89,12 +89,13 @@ def tts():
 @coroutine
 async def list_voices(fields, json_out):
     coqui = Coqui(base_url=BASE_URL)
-    await coqui.login_async(AuthInfo.get())
-    voices = await coqui.cloned_voices_async()
+    await coqui.login(AuthInfo.get())
+    voices = await coqui.cloned_voices()
     if json_out:
         click.echo(json.dumps([v._asdict() for v in voices], default=json_serial))
     elif not fields:
-        click.echo(voices)
+        for v in voices:
+            print(v)
     else:
         writer = csv.writer(sys.stdout, lineterminator=os.linesep)
         for v in voices:
@@ -108,9 +109,9 @@ async def list_voices(fields, json_out):
 @coroutine
 async def clone_voice(audio_file, name, json_out):
     coqui = Coqui(base_url=BASE_URL)
-    await coqui.login_async(AuthInfo.get())
+    await coqui.login(AuthInfo.get())
     with open(audio_file, "rb") as fin:
-        voice = await coqui.clone_voice_async(fin, name)
+        voice = await coqui.clone_voice(fin, name)
     if json_out:
         click.echo(json.dumps(voice._asdict(), default=json_serial))
     else:
@@ -126,12 +127,12 @@ async def clone_voice(audio_file, name, json_out):
 @coroutine
 async def estimate_quality(audio_file, audio_url, json_out):
     coqui = Coqui(base_url=BASE_URL)
-    await coqui.login_async(AuthInfo.get())
+    await coqui.login(AuthInfo.get())
 
     if not audio_file and not audio_url:
         raise click.UsageError("Must specify exactly one of: audio_file or audio_url")
 
-    quality, raw = await coqui.estimate_quality_async(
+    quality, raw = await coqui.estimate_quality(
         audio_url=audio_url, audio_path=audio_file
     )
 
@@ -152,8 +153,8 @@ async def estimate_quality(audio_file, audio_url, json_out):
 @coroutine
 async def list_samples(voice, fields, json_out):
     coqui = Coqui(base_url=BASE_URL)
-    await coqui.login_async(AuthInfo.get())
-    samples = await coqui.list_samples_async(voice_id=voice)
+    await coqui.login(AuthInfo.get())
+    samples = await coqui.list_samples(voice_id=voice)
     if json_out:
         click.echo(json.dumps([s._asdict() for s in samples], default=json_serial))
     elif not fields:
@@ -183,11 +184,11 @@ async def list_samples(voice, fields, json_out):
 @coroutine
 async def synthesize(voice, text, speed, name, save, play, json_out):
     coqui = Coqui(base_url=BASE_URL)
-    await coqui.login_async(AuthInfo.get())
-    sample = await coqui.synthesize_async(voice, text, speed, name or text[:30])
+    await coqui.login(AuthInfo.get())
+    sample = await coqui.synthesize(voice, text, speed, name or text[:30])
     # sample = {'id': '62151ee3-858f-4398-935d-e48481263927', 'name': 'test from the command line', 'created_at': '2022-06-14T20:15:33.016Z', 'voice_id': 'c97d34da-a677-4219-b4b2-9ec198c948e0', 'audio_url': 'https://coqui-dev-creator-app-synthesized-samples.s3.amazonaws.com/samples/sample_GAh7vFe.wav?AWSAccessKeyId=AKIAXW7NFYT5F2KY3J4D&Signature=CCz46wpRIHrkBT9TCx4vZMVkAQE%3D&Expires=1655241335'}
     with tempfile.NamedTemporaryFile("wb") as fout:
-        await sample.download_async(fout)
+        await sample.download(fout)
         if save:
             shutil.copy(fout.name, save)
             click.echo(f"Saved synthesized sample to {save}")
