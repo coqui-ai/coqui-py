@@ -22,6 +22,12 @@ dependencies = [
   "json5==0.9.8",
 ]
 
+[project.optional-dependencies]
+docs = [
+  "Sphinx==6.1.3",
+  "sphinx-immaterial==0.11.2",
+]
+
 [project.urls]
 Home = "https://github.com/coqui-ai/coqui-py"
 Source = "https://github.com/coqui-ai/coqui-py"
